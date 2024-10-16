@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'colors.dart';
 import 'widgets/todo_item.dart';
 import 'model/todo.dart';
+import './user_simple_preferences.dart';
 
 class Home extends StatefulWidget {
   Home({super.key});
@@ -16,11 +17,23 @@ class _HomeState extends State<Home> {
   final _todoController = TextEditingController();
   final _searchController = TextEditingController();
   bool hasSearched = false;
+  var loadedList;
+  var permLoadedList;
 
   @override
   void initState() {
-    _foundToDo = ToDo.todoList();
     super.initState();
+    UserSimplePreferences.getTodoList().then((loadedList) {
+      setState(() {
+        for (ToDo todoo in loadedList) {
+          if (!todosList.contains(todoo)) {
+            todosList.add(todoo);
+          }
+        }
+        _foundToDo = loadedList;
+        permLoadedList = loadedList;
+      });
+    });
   }
 
   Widget build(BuildContext context) {
@@ -45,6 +58,12 @@ class _HomeState extends State<Home> {
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white)),
                       ),
+                      /*for (ToDo todoo in _foundToDo)
+                        TodoItem(
+                          todo: todoo,
+                          onToDoChanged: _handleToDoChange,
+                          onDeleteItem: _handleItemDelete,
+                        )*/
                       ...hasSearched
                           ? _foundToDo
                               .map((ToDo todoo) => TodoItem(
@@ -70,29 +89,7 @@ class _HomeState extends State<Home> {
               alignment: Alignment.bottomCenter,
               child: Row(children: [
                 Expanded(
-                    child: Container(
-                        margin: const EdgeInsets.only(
-                            bottom: 20, right: 20, left: 20),
-                        decoration: const BoxDecoration(
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.grey,
-                                  offset: Offset(0.0, 0.0),
-                                  blurRadius: 10.0,
-                                  spreadRadius: 0.0),
-                            ],
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        padding: const EdgeInsets.all(10),
-                        child: TextField(
-                          controller: _todoController,
-                          decoration: InputDecoration(
-                            hintText: "Add a new ToDo",
-                            border: InputBorder.none,
-                            hintStyle: TextStyle(color: Colors.grey[400]),
-                          ),
-                        ))),
+                    child: _addToDoTextBox(todoController: _todoController)),
                 Container(
                   margin: const EdgeInsets.only(bottom: 20, right: 20),
                   child: ElevatedButton(
@@ -124,6 +121,7 @@ class _HomeState extends State<Home> {
   void _handleToDoChange(ToDo todo) {
     setState(() {
       todo.isDone = !todo.isDone!;
+      UserSimplePreferences.setTodoList(todosList);
     });
   }
 
@@ -173,6 +171,7 @@ class _HomeState extends State<Home> {
   void _deleteItem(String id) {
     setState(() {
       todosList.removeWhere((item) => item.id == id);
+      UserSimplePreferences.setTodoList(todosList);
     });
   }
 
@@ -183,6 +182,7 @@ class _HomeState extends State<Home> {
           id: DateTime.now().microsecondsSinceEpoch.toString(),
           todoText: _todoController.text,
           isDone: false));
+      UserSimplePreferences.setTodoList(todosList);
     });
   }
 
@@ -192,7 +192,7 @@ class _HomeState extends State<Home> {
     if (enteredKeyword.isEmpty) {
       results = todosList;
     } else {
-      results = todosList
+      results = _foundToDo
           .where((item) => item.todoText!
               .toLowerCase()
               .contains(enteredKeyword.toLowerCase()))
@@ -251,5 +251,44 @@ class _HomeState extends State<Home> {
         ],
       ),
     );
+  }
+}
+
+class _addToDoTextBox extends StatefulWidget {
+  const _addToDoTextBox({
+    super.key,
+    required TextEditingController todoController,
+  }) : _todoController = todoController;
+
+  final TextEditingController _todoController;
+
+  @override
+  State<_addToDoTextBox> createState() => _addToDoTextBoxState();
+}
+
+class _addToDoTextBoxState extends State<_addToDoTextBox> {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+        margin: const EdgeInsets.only(bottom: 20, right: 20, left: 20),
+        decoration: const BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.grey,
+                  offset: Offset(0.0, 0.0),
+                  blurRadius: 10.0,
+                  spreadRadius: 0.0),
+            ],
+            borderRadius: BorderRadius.all(Radius.circular(10))),
+        padding: const EdgeInsets.all(10),
+        child: TextField(
+          controller: widget._todoController,
+          decoration: InputDecoration(
+            hintText: "Add a new ToDo",
+            border: InputBorder.none,
+            hintStyle: TextStyle(color: Colors.grey[400]),
+          ),
+        ));
   }
 }

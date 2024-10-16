@@ -10,10 +10,22 @@ class ToDo {
   });
 
   static List<ToDo> todoList() {
-    return [
-      ToDo(id: '1', todoText: 'Morning exercise', isDone: true),
-      ToDo(id: '2', todoText: 'Buy Groceries', isDone: true),
-      ToDo(id: '3', todoText: 'Visit Family', isDone: false),
-    ];
+    return [];
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "id": id,
+      "todo_text": todoText,
+      "is_done": isDone,
+    };
+  }
+
+  static ToDo fromJson(Map<String, dynamic> json) {
+    return ToDo(
+      id: json['id'],
+      todoText: json['todo_text'],
+      isDone: json['is_done'],
+    );
   }
 }
