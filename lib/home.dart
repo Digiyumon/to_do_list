@@ -12,6 +12,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  final ScrollController _scrollController = ScrollController();
   final todosList = ToDo.todoList();
   List<ToDo> _foundToDo = [];
   final _todoController = TextEditingController();
@@ -19,6 +20,8 @@ class _HomeState extends State<Home> {
   bool hasSearched = false;
   var loadedList;
   var permLoadedList;
+
+  String _scrollLocation = "Reached start";
 
   @override
   void initState() {
@@ -32,7 +35,27 @@ class _HomeState extends State<Home> {
         }
         _foundToDo = loadedList;
         permLoadedList = loadedList;
+        _scrollController.addListener(() {
+          _listenToScrollMoment();
+        });
       });
+    });
+  }
+
+  void _listenToScrollMoment() {
+    String currentLocation = '';
+    if (_scrollController.offset ==
+        _scrollController.position.minScrollExtent) {
+      currentLocation = 'reached start';
+    } else if (_scrollController.offset ==
+        _scrollController.position.maxScrollExtent) {
+      currentLocation = 'reached end';
+    } else {
+      currentLocation = 'in between';
+    }
+
+    setState(() {
+      _scrollLocation = currentLocation;
     });
   }
 
@@ -40,79 +63,81 @@ class _HomeState extends State<Home> {
     return Scaffold(
       backgroundColor: secondaryColor,
       appBar: _appBar(),
-      body: Stack(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                SearchBox(),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(top: 50, bottom: 20),
-                        child: const Text('All ToDos',
-                            style: TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white)),
-                      ),
-                      /*for (ToDo todoo in _foundToDo)
-                        TodoItem(
-                          todo: todoo,
-                          onToDoChanged: _handleToDoChange,
-                          onDeleteItem: _handleItemDelete,
-                        )*/
-                      ...hasSearched
-                          ? _foundToDo
-                              .map((ToDo todoo) => TodoItem(
-                                    todo: todoo,
-                                    onToDoChanged: _handleToDoChange,
-                                    onDeleteItem: _handleItemDelete,
-                                  ))
-                              .toList()
-                          : todosList
-                              .map((ToDo todoo) => TodoItem(
-                                    todo: todoo,
-                                    onToDoChanged: _handleToDoChange,
-                                    onDeleteItem: _handleItemDelete,
-                                  ))
-                              .toList(),
-                    ],
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // Search Box and Title Section
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SearchBox(),
+                  //SwitchExample(),
+                  Container(
+                    margin: const EdgeInsets.only(top: 20, bottom: 10),
+                    child: const Text('ToDo List',
+                        style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white)),
                   ),
-                )
-              ],
+                ],
+              ),
             ),
           ),
-          Align(
-              alignment: Alignment.bottomCenter,
-              child: Row(children: [
-                Expanded(
-                    child: _addToDoTextBox(todoController: _todoController)),
-                Container(
-                  margin: const EdgeInsets.only(bottom: 20, right: 20),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (_todoController.text.isEmpty) {
-                        return;
-                      } else {
-                        _addToDoItem(_todoController.text);
-                        _todoController.clear();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: primaryColor,
-                      minimumSize: const Size(60, 60),
-                      elevation: 10,
-                    ),
-                    child: const Text(
-                      '+',
-                      style: TextStyle(fontSize: 40),
-                    ),
-                  ),
-                )
-              ]))
+
+          // The list of todos
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                ToDo todoo = hasSearched ? _foundToDo[index] : todosList[index];
+                return TodoItem(
+                  todo: todoo,
+                  onToDoChanged: _handleToDoChange,
+                  onDeleteItem: _handleItemDelete,
+                );
+              },
+              childCount: hasSearched ? _foundToDo.length : todosList.length,
+            ),
+          ),
+
+          // Space at the bottom to accommodate the text box and button
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 100), // Adjust this height to your needs
+          ),
+        ],
+      ),
+
+      // AddToDoTextBox and the '+' Button at the bottom
+      bottomSheet: Row(
+        children: [
+          Expanded(
+            child: _addToDoTextBox(todoController: _todoController),
+          ),
+          Container(
+            margin: const EdgeInsets.only(bottom: 20, right: 20),
+            child: ElevatedButton(
+              onPressed: () {
+                if (_todoController.text.isEmpty) {
+                  return;
+                } else {
+                  _addToDoItem(_todoController.text);
+                  _todoController.clear();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: primaryColor,
+                minimumSize: const Size(60, 60),
+                elevation: 10,
+              ),
+              child: const Text(
+                '+',
+                style: TextStyle(fontSize: 40),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -122,6 +147,7 @@ class _HomeState extends State<Home> {
     setState(() {
       todo.isDone = !todo.isDone!;
       UserSimplePreferences.setTodoList(todosList);
+      print(_scrollLocation);
     });
   }
 
@@ -290,5 +316,31 @@ class _addToDoTextBoxState extends State<_addToDoTextBox> {
             hintStyle: TextStyle(color: Colors.grey[400]),
           ),
         ));
+  }
+}
+
+class SwitchExample extends StatefulWidget {
+  const SwitchExample({super.key});
+
+  @override
+  State<SwitchExample> createState() => _SwitchExampleState();
+}
+
+class _SwitchExampleState extends State<SwitchExample> {
+  bool light = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Switch(
+      // This bool value toggles the switch.
+      value: light,
+      activeColor: Colors.white,
+      onChanged: (bool value) {
+        // This is called when the user toggles the switch.
+        setState(() {
+          light = value;
+        });
+      },
+    );
   }
 }
