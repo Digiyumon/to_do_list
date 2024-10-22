@@ -10,6 +10,7 @@ This project is mainly to get a simple understanding about Flutter by creating a
 - Easily search for specific ToDo items with a built-in search bar.
 
 ## Demo
+![](https://github.com/Digiyumon/to_do_list/blob/main/lib/gif/ToDoApp%20gif.gif)
 ## Lessons Learned
 
 What did you learn while building this project? What challenges did you face and how did you overcome them?
